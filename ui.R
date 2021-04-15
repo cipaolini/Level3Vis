@@ -26,11 +26,13 @@ sidebar <- dashboardSidebar(
     ),
     hr(),
     selectInput("lemma", "Lemma",
-                c("heffen", "haten", "hachelijk", "diskwalificeren"),
+                dir("wwmx"),
                 selected = "heffen"),
     selectInput("medoid", "N of medoid",
                 seq(8), selected = 1),
     materialSwitch("noise", label = "Ignore noise cluster", status="success"),
+    switchInput("alpha", label = "Alpha", onStatus="primary",
+                onLabel = "= MP", offLabel = "scaled"),
     hr(),
     h4("Define relevance"),
     sliderInput("recall", "Recall",
@@ -98,7 +100,10 @@ desc_panel <- tabItem(
                    p("For the context words, a scatterplot mapping recall and precision values in relation
               to the clusters; the precision and recall thresholds are indicated with a horizontal and vertical line respectively."),
                    p("The dots are colored by cluster matching the plots of the first row, their frequency in the cluster
-              is mapped to the size and the tooltip shows the context word and its frequency."))
+              is mapped to the size and the tooltip shows the context word and its frequency."),
+                   p("By clicking on a dot, the tokens with which it co-occurs are highlighted in the first t-SNE plot,
+                     overriding the mapping between opacity and membership probability. Double-click on an empty area
+                     resets the highlight."))
                ),
         column(width = 6,
             box(
@@ -118,6 +123,10 @@ desc_panel <- tabItem(
                 h4("Ignore noise cluster"),
                 p("This toggle button allows us to hide the context words linked to the noise tokens in the t-SNE
               representation of FOCs, the scatterplot mapping recall and precision and the heatmap."),
+                h4("Alpha"),
+                p("Set the mapping between membership probabilities and opacity of the tokens in the first t-SNE plot.",
+                  strong("Scaled"), " means that the opacity is scaled to the range of values in that medoid, while ",
+                  strong("= MP"), " applies the exact membership probability as opacity, rendering noise tokens invisible."),
                 h4("Define relevance"),
                 p("Sliders to fix the recall and precision thresholds to consider a context word 'relevant' for a cluster."),
                 p("In addition, a toggle button in between allows us to decide between and AND or OR relationship between the filters."),
