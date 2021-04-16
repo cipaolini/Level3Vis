@@ -66,11 +66,13 @@ matrix2heatmap <- function(df, removeNoise, distances) {
 # 
 # for (lemma in names(dat)) {
 #   print(lemma)
+#   ctxts <- semann2nepho::loadCloud("../../qlvl/tokenclouds/data/", lemma, "variables")
 #   for (medoidname in names(dat[[lemma]]$medoidCoords)) {
 #     print(medoidname)
-#     dat[[lemma]]$medoidCoords[[medoidname]]$cws <- dat[[lemma]]$medoidCoords[[medoidname]]$cws %>% 
-#       imap_dfr(~mutate(.data = .x, cluster = .y)) %>% 
-#       arrange(desc(Fscore))
+#     ctxt <- ctxts %>% 
+#       select(`_id`, ctxt = str_replace(medoidname, "(.*).LENGTH.*", "_ctxt.\\1"))
+#     dat[[lemma]]$medoidCoords[[medoidname]]$coords <- dat[[lemma]]$medoidCoords[[medoidname]]$coords %>%
+#       left_join(ctxt, by = "_id")
 #   }
 # }
-# saveRDS(dat, here::here("shiny", "Level3", "data.rds"))
+# saveRDS(dat, "data.rds")

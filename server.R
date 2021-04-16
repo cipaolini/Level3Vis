@@ -10,6 +10,7 @@
 library(shiny)
 library(tidyverse)
 library(ggridges)
+library(DT)
 
 dat <- readRDS("data.rds")
 # Define server logic required to draw a histogram
@@ -67,15 +68,32 @@ shinyServer(function(input, output, session) {
         ggplotly(g, tooltip="text")
     })
     
-    output$mp <- renderPlot({
-        medoid()$coords %>%
-            filter(cluster != "0") %>%
-            ggplot(aes(x = membprob, y = cluster, fill = sense, color = sense)) +
-            geom_density_ridges(
-                aes(point_color = sense, point_fill = sense),
-                alpha = 0.3, point_alpha = 1, jittered_points = TRUE, scale = 0.9) +
-            theme_ridges() +
-            labs(y = "Cluster", x = "Membership probability")
+    output$contexts <- renderDT({
+        dt <- medoid()$coords %>% select(ctxt, cluster, sense, cws) %>% 
+            mutate(sense = str_remove(sense, paste0(input$lemma, "_")))
+        if (!is.null(cor_click())) {
+            dt <- dt %>% mutate(selected = map_lgl(cws, ~cor_click() %in% .x)) %>% filter(selected) %>% 
+                select(-selected)
+        } else {
+            dt <- dt %>% filter(cluster != "0" | !input$noise)
+        }
+        available_clusters <- sort(unique(dt$cluster))
+        cluster_colors <- paste0(colorblindr::palette_OkabeIto[as.numeric(available_clusters)], "66")
+        dt %>% rename(Context = ctxt) %>% 
+            mutate(cws = map_chr(cws, paste, collapse = "; ")) %>%
+            datatable(
+                escape = F,
+                options = list(
+                    pageLength = 4,
+                    columnDefs = list(
+                        list(visible = FALSE, searchable = TRUE, targets = c(4))
+                    )
+                    )
+                ) %>% 
+            formatStyle(
+                "cluster",
+                target="row",
+                backgroundColor = styleEqual(available_clusters, cluster_colors))
     })
     
     # Plot context words ----
@@ -156,6 +174,37 @@ shinyServer(function(input, output, session) {
         
         ggplotly(g, tooltip = "text", height = 500) %>% 
             layout(xaxis = list(tickangle = 90))
+    })
+    
+    # Membership probabilities ----
+    output$mp <- renderPlot({
+        medoid()$coords %>%
+            filter(cluster != "0") %>%
+            ggplot(aes(x = membprob, y = cluster, fill = sense, color = sense)) +
+            geom_density_ridges(
+                aes(point_color = sense, point_fill = sense),
+                alpha = 0.3, point_alpha = 1, jittered_points = TRUE, scale = 0.9) +
+            theme_ridges() +
+            labs(y = "Cluster", x = "Membership probability") +
+            xlim(c(0, 1))
+    })
+    
+    output$bars <- renderPlot({
+        imap_dfr(dat[[input$lemma]]$medoidCoords, function(medoidmodel, medoidname) {
+            mutate(medoidmodel$coords, isnoise = cluster == "0") %>% 
+                count(isnoise) %>% 
+                mutate(medoid = as.character(which(names(dat[[input$lemma]]$medoidCoords) == medoidname)))
+        }) %>% 
+            mutate(isnoise = if_else(isnoise, "Noise cluster", "Actual clusters")) %>%
+            ggplot() +
+            geom_col(aes(x = medoid, y = n, fill = isnoise)) +
+            labs(x = "Medoid number", y = "Number of tokens", fill = "HDBSCAN noise") +
+            scale_fill_manual(values = c("gray60", "gray30")) +
+            theme_bw() +
+            theme(axis.text = element_text(size = 20),
+                  axis.title = element_text(size = 15),
+                  legend.text = element_text(size = 12),
+                  legend.title = element_text(size = 15))
     })
     
     # Report double relevance or missing plot ----
