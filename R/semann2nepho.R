@@ -39,20 +39,29 @@ matrix2heatmap <- function(df, removeNoise, distances) {
   cwlist <- df %>% filter(cluster != "0" | !removeNoise) %>% arrange(cluster) %>% pull(cw)
   clusters <- select(df, cw, cluster) %>% deframe
   
-  expand.grid(x = cwlist, y = cwlist) %>% as_tibble() %>% 
+  expand.grid(x = cwlist, y = cwlist, stringsAsFactors = FALSE) %>% as_tibble() %>% 
     mutate(
-      x = as.character(x), y = as.character(y),
       orig_distance = map2_dbl(x, y, ~distances[.x, .y]),
       # tr_distance = map2_dbl(x, y, ~transformed[.x, .y]),
       cluster_x = as.integer(clusters[x]),
       cluster_y = as.integer(clusters[y]),
-      color_x = colorblindr::palette_OkabeIto[cluster_x+1],
-      color_y = colorblindr::palette_OkabeIto[cluster_y+1],
+      color_x = map_chr(cluster_x, mapClusColor),
+      color_y = map_chr(cluster_y, mapClusColor),
       x_label = glue::glue("<span style='color:{color_x};'>{x}</span>"),
       y_label = glue::glue("<span style='color:{color_y};transform:rotate(90deg);'>{y}</span>")
     )
 }
 
+mapClusColor <- function(x) {
+  if (x == 0) {
+    '#9b9c9fB3'
+  } else if (x >= length(colorblindr::palette_OkabeIto_black)) {
+    '#9b9c9f'
+  } else {
+    colorblindr::palette_OkabeIto_black[[x]]  
+    }
+    
+}
 # transformMats <- function (mat, asDist = TRUE) 
 # {
 #   ranked <- log(1 + log(t(apply(mat, 1, rank))))

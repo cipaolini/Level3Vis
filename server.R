@@ -11,6 +11,7 @@ library(shiny)
 library(tidyverse)
 library(ggridges)
 library(DT)
+library(colorblindr)
 
 dat <- readRDS("data.rds")
 # Define server logic required to draw a histogram
@@ -33,7 +34,7 @@ shinyServer(function(input, output, session) {
     relevantcws <- reactive({
         pr_filter <- parse(text = glue::glue("recall >= {input$recall} {if (input$operator) '&' else '|'} precision >= {input$precision}"))
         d <- filter(medoid()$cws, TP > 2, eval(pr_filter)) %>%
-            # arrange(desc(Fscore)) %>% 
+            arrange(desc(Fscore)) %>% 
             group_by(cw) %>% mutate(reps = seq(n()))
     })
     
@@ -52,13 +53,14 @@ shinyServer(function(input, output, session) {
                 alpha = map2_dbl(cws, membprob, function(cwlist, mp) {
                     if (is.null(cor_click())) mp else as.numeric(cor_click() %in% cwlist)
                 }),
-                cws = map2_chr(cws, cluster, format_cws, relevantcws_filtered())
-                ) %>% 
+                cws = map2_chr(cws, cluster, format_cws, relevantcws_filtered()),
+                cluster = if_else(cluster == "0", NA_character_, as.character(cluster))
+                ) %>%
             ggplot() +
             geom_point(aes(x = model.x, y = model.y, color = cluster, alpha = alpha,
                            text = cws)) +
             theme_void() +
-            colorblindr::scale_color_OkabeIto(darken = 0.1) +
+            scale_color_OkabeIto(darken = 0.1, use_black = TRUE, na.value = "#9b9c9f") +
             coord_fixed()
         if (!is.null(cor_click())) {
             g <- g + scale_alpha(range = c(0.25, 1))
@@ -70,15 +72,19 @@ shinyServer(function(input, output, session) {
     
     output$contexts <- renderDT({
         dt <- medoid()$coords %>% select(ctxt, cluster, sense, cws) %>% 
-            mutate(sense = str_remove(sense, paste0(input$lemma, "_")))
+            mutate(sense = str_remove(sense, paste0(input$lemma, "_")),
+                   cluster = if_else(cluster == "0", "noise", as.character(cluster)))
         if (!is.null(cor_click())) {
             dt <- dt %>% mutate(selected = map_lgl(cws, ~cor_click() %in% .x)) %>% filter(selected) %>% 
                 select(-selected)
         } else {
-            dt <- dt %>% filter(cluster != "0" | !input$noise)
+            dt <- dt %>% filter(cluster != "noise" | !input$noise)
         }
         available_clusters <- sort(unique(dt$cluster))
-        cluster_colors <- paste0(colorblindr::palette_OkabeIto[as.numeric(available_clusters)], "66")
+        cluster_colors <- paste0(palette_OkabeIto_black[as.numeric(available_clusters)], "66")
+        if ("noise" %in% dt$cluster) {
+            cluster_colors[length(cluster_colors)] <- '#9b9c9f66'
+            }
         dt %>% rename(Context = ctxt) %>% 
             mutate(cws = map_chr(cws, paste, collapse = "; ")) %>%
             datatable(
@@ -103,23 +109,42 @@ shinyServer(function(input, output, session) {
             deframe
         
         # From distances to coordinates
+        ncluster <- medoid()$coords %>% pull(cluster) %>% as.character() %>% as.numeric() %>% max
         tsne <- medoid()$cw_coords %>% 
             mutate(is_relevant = map_lgl(cw, ~.x %in% relevantcws_filtered()$cw),
                    cluster = map2_chr(cw, is_relevant, function(c, b) {
                        if (b) clustermapping[[c]] else NA_character_
                    }),
                    text = map2_chr(cw, is_relevant, info, cwinfo = relevantcws_filtered(), focdists = focdists()),
-                   is_relevant = if_else(is_relevant & (!(input$noise & cluster == "0")), 1, 0))
-        # tsne$size <- if (is.null(cor_click())) 1 else map_dbl(tsne$cw, ~.x == cor_click())
+                   # is_relevant = case_when(
+                   #     is_relevant & cluster != "0" ~ 1,
+                   #     !is_relevant | input$noise ~ 0,
+                   #     TRUE ~ 0.8
+                   # ),
+                   cluster = map2_chr(cluster, is_relevant, function(clus, isr) {
+                       if (isr & clus != "0" & as.integer(clus) <= length(palette_OkabeIto_black)) {
+                           palette_OkabeIto_black[[as.integer(clus)]]
+                       } else if (!isr | (input$noise & clus == "0") ) {
+                           "#9b9c9f26"
+                       } else {
+                           "#9b9c9f"
+                       }
+                   })
+                   # cluster = if_else(!is.na(cluster) & cluster == "0", as.character(min(ncluster+1, 9)), cluster)
+                   )
+        cluster_order <- sort(as.numeric(unique(tsne$cluster)))
+        
         g <- ggplot(tsne) +
             geom_text(aes(x = x, y = y, label = cw,
-                          alpha = is_relevant, color = cluster,
+                          # alpha = is_relevant,
+                          color = cluster,
                           text = text)) +
             theme_void() +
-            colorblindr::scale_color_OkabeIto(na.value = "#b2b5b9", order = sort(unique(as.numeric(relevantcws_filtered()$cluster)))+1) +
+            scale_color_identity() +
+            # scale_color_OkabeIto(na.value = "#9b9c9f", order = cluster_order, use_black = TRUE) +
             coord_fixed()
         ggplotly(g, tooltip = "text") %>% 
-            hide_guides()
+            hide_legend()
     })
     
     observeEvent(medoid(), {
@@ -139,13 +164,14 @@ shinyServer(function(input, output, session) {
     
     output$cor <- renderPlotly({
         d <- medoid()$cws %>% 
-            filter(cluster != "0" | !input$noise)
+            filter(cluster != "0" | !input$noise) %>% 
+            mutate(cluster = if_else(cluster == "0", NA_character_, cluster))
         g <- ggplot(data = d, aes(x = recall, y = precision, color = cluster,
                                   size = TP, customdata = cw, text = glue::glue("<b>{cw}</b><br>F: {TP}"))) +
             geom_point() +
             geom_hline(yintercept = input$precision, size = 0.1) +
             geom_vline(xintercept = input$recall, size = 0.1) +
-            colorblindr::scale_color_OkabeIto(order = sort(unique(as.numeric(d$cluster))) + 1) +
+            scale_color_OkabeIto(na.value = "#9b9c9f", use_black = TRUE, order = sort(unique(as.numeric(d$cluster)))) +
             theme_bw()
         ggplotly(g, source = "cor", tooltip = "text")
     })
