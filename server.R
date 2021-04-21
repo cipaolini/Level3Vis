@@ -33,7 +33,7 @@ shinyServer(function(input, output, session) {
     # Select relevant context words ----
     relevantcws <- reactive({
         pr_filter <- parse(text = glue::glue("recall >= {input$recall} {if (input$operator) '&' else '|'} precision >= {input$precision}"))
-        d <- filter(medoid()$cws, TP > 2, eval(pr_filter)) %>%
+        d <- filter(medoid()$cws, TP > input$minfreq, eval(pr_filter)) %>%
             arrange(desc(Fscore)) %>% 
             group_by(cw) %>% mutate(reps = seq(n()))
     })
@@ -54,7 +54,8 @@ shinyServer(function(input, output, session) {
                     if (is.null(cor_click())) mp else as.numeric(cor_click() %in% cwlist)
                 }),
                 cws = map2_chr(cws, cluster, format_cws, relevantcws_filtered()),
-                cluster = if_else(cluster == "0", NA_character_, as.character(cluster))
+                cluster = if_else(cluster == "0", NA_character_, as.character(cluster)),
+                cluster = fct_reorder(cluster, as.numeric(cluster))
                 ) %>%
             ggplot() +
             geom_point(aes(x = model.x, y = model.y, color = cluster, alpha = alpha,
@@ -64,7 +65,7 @@ shinyServer(function(input, output, session) {
             coord_fixed()
         if (!is.null(cor_click())) {
             g <- g + scale_alpha(range = c(0.25, 1))
-        } else if (input$alpha) {
+        } else if (!input$alpha) {
             g <- g + scale_alpha_identity()
         }
         ggplotly(g, tooltip="text")
@@ -80,19 +81,20 @@ shinyServer(function(input, output, session) {
         } else {
             dt <- dt %>% filter(cluster != "noise" | !input$noise)
         }
-        available_clusters <- sort(unique(dt$cluster))
-        cluster_colors <- paste0(palette_OkabeIto_black[as.numeric(available_clusters)], "66")
+        available_clusters <- sort(as.numeric(unique(dt$cluster)), na.last = TRUE)
+        cluster_colors <- paste0(palette_OkabeIto_black[available_clusters], "66")
         if ("noise" %in% dt$cluster) {
             cluster_colors[length(cluster_colors)] <- '#9b9c9f66'
             }
         dt %>% rename(Context = ctxt) %>% 
             mutate(cws = map_chr(cws, paste, collapse = "; ")) %>%
             datatable(
-                escape = F,
+                escape = F, filter = "top",
                 options = list(
                     pageLength = 4,
                     columnDefs = list(
-                        list(visible = FALSE, searchable = TRUE, targets = c(4))
+                        list(visible = FALSE, searchable = TRUE, targets = c(4)),
+                        list(searchable = TRUE, targets = c(1, 2, 3))
                     )
                     )
                 ) %>% 
@@ -165,10 +167,11 @@ shinyServer(function(input, output, session) {
     output$cor <- renderPlotly({
         d <- medoid()$cws %>% 
             filter(cluster != "0" | !input$noise) %>% 
-            mutate(cluster = if_else(cluster == "0", NA_character_, cluster))
+            mutate(cluster = if_else(cluster == "0", NA_character_, cluster),
+                   cluster = fct_reorder(cluster, as.numeric(cluster)))
         g <- ggplot(data = d, aes(x = recall, y = precision, color = cluster,
                                   size = TP, customdata = cw, text = glue::glue("<b>{cw}</b><br>F: {TP}"))) +
-            geom_point() +
+            geom_point(alpha = 0.7) +
             geom_hline(yintercept = input$precision, size = 0.1) +
             geom_vline(xintercept = input$recall, size = 0.1) +
             scale_color_OkabeIto(na.value = "#9b9c9f", use_black = TRUE, order = sort(unique(as.numeric(d$cluster)))) +
@@ -178,13 +181,14 @@ shinyServer(function(input, output, session) {
     
     cor_click <- reactive({
         d <- event_data("plotly_click", source = "cor")
-        if (is.null(d)) {
-            updateSwitchInput(session = session, inputId = "alpha", disabled = FALSE)
-            NULL
-        } else {
-            updateSwitchInput(session = session, inputId = "alpha", disabled = TRUE)
-            d$customdata
-            }
+        if (is.null(d)) NULL else d$customdata
+        # if (is.null(d)) {
+        #     updateSwitchInput(session = session, inputId = "alpha", disabled = FALSE)
+        #     NULL
+        # } else {
+        #     updateSwitchInput(session = session, inputId = "alpha", disabled = TRUE)
+        #     d$customdata
+        #     }
     })
     
     # Plot heatmap of distances ----
@@ -221,7 +225,7 @@ shinyServer(function(input, output, session) {
                 count(isnoise) %>% 
                 mutate(medoid = as.character(which(names(dat[[input$lemma]]$medoidCoords) == medoidname)))
         }) %>% 
-            mutate(isnoise = if_else(isnoise, "Noise cluster", "Actual clusters")) %>%
+            mutate(isnoise = if_else(isnoise, "Noise", "Actual clusters")) %>%
             ggplot() +
             geom_col(aes(x = medoid, y = n, fill = isnoise)) +
             labs(x = "Medoid number", y = "Number of tokens", fill = "HDBSCAN noise") +
