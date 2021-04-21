@@ -12,6 +12,7 @@ library(tidyverse)
 library(ggridges)
 library(DT)
 library(colorblindr)
+library(shinydashboardPlus)
 
 dat <- readRDS("data.rds")
 # Define server logic required to draw a histogram
@@ -161,6 +162,10 @@ shinyServer(function(input, output, session) {
                     ),
                 type = "warning"
             )
+            if (!input$focs_box$collapsed) {
+                updateBox("focs_box", action = "toggle", options =list(collapsed = TRUE))    
+            }
+            
         }
     })
     

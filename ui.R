@@ -10,6 +10,7 @@
 library(shinydashboard)
 library(plotly)
 library(shinyWidgets)
+library(shinydashboardPlus)
 
 # Define UI for application that draws a histogram
 header <- dashboardHeader(
@@ -62,7 +63,7 @@ tsne_panel <- tabPanel(
       column(width = 6,
              box(title = "FOCs (type level vectors)", width = NULL,
                  status = "success", solidHeader = TRUE, collapsible = TRUE,
-                 plotlyOutput("focs")),
+                 plotlyOutput("focs"), id = "focs_box"),
              box(title = "FOCs by recall and precision", width = NULL,
                  status = "success", solidHeader = TRUE, collapsible = TRUE,
                  plotlyOutput("cor"))
@@ -84,7 +85,7 @@ body <- dashboardBody(
         tabItem(
             tabName = "dashboard",
             fluidRow(
-                box(h4(htmlOutput("medoid")), width = 12, background = "yellow")
+                shinydashboard::box(h4(htmlOutput("medoid")), width = 12, background = "yellow")
             ),
             fluidRow(
               tabBox(selected = "t-SNE",
