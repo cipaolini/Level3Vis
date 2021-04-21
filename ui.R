@@ -31,7 +31,9 @@ sidebar <- dashboardSidebar(
                 selected = "heffen"),
     selectInput("medoid", "N of medoid",
                 seq(8), selected = 1),
-    materialSwitch("noise", label = "Ignore noise cues", status="success"),
+    strong("Noise cues", style ="margin-left:1em;"),
+    materialSwitch("noise", label = "Ignore", status="success",
+                   right = TRUE, value = TRUE),
     strong("Tokens transparency", style ="margin-left:1em;"),
     materialSwitch("alpha", label = "Scale",
                    right = TRUE, value = TRUE, status = "primary"),
@@ -81,36 +83,36 @@ body <- dashboardBody(
   padding : 1px;
   }
                   ")),
-    tabItems(
-        tabItem(
-            tabName = "dashboard",
-            fluidRow(
-                shinydashboard::box(h4(htmlOutput("medoid")), width = 12, background = "yellow")
-            ),
-            fluidRow(
-              tabBox(selected = "t-SNE",
-                     width = 12, height = "100%",
-                     tsne_panel,
-                     tabPanel("Heatmap", plotlyOutput("heatmap_or", height = "100%")),
-                     tabPanel("Membership probabilities",
-                              fluidRow(
-                                box(title = "MP densities", status = "primary",
-                                    plotOutput("mp")),
-                                box(title = "Proportion of noise per model",
-                                    status = "danger",
-                                    plotOutput("bars")))),
-                     tabPanel("Messages", fluidRow(
-                       box(title = "Split relevance",
-                           width = 12,
-                           background = "olive",
-                           htmlOutput("splitrelevance"))
-                     ))
-              )
-            )
-            ),
-        desc_panel
-    )
-    
+  tabItems(
+    tabItem(
+      tabName = "dashboard",
+      fluidRow(
+        shinydashboard::box(h4(htmlOutput("medoid")), width = 12, background = "yellow")
+      ),
+      fluidRow(
+        tabBox(selected = "t-SNE",
+               width = 12, height = "100%",
+               tsne_panel,
+               tabPanel("Heatmap", plotlyOutput("heatmap_or", height = "100%")),
+               tabPanel("Membership probabilities",
+                        fluidRow(
+                          box(title = "MP densities", status = "primary",
+                              plotOutput("mp")),
+                          box(title = "Proportion of noise per model",
+                              status = "danger",
+                              plotOutput("bars")))),
+               tabPanel("Messages", fluidRow(
+                 box(title = "Split relevance",
+                     width = 12,
+                     background = "olive",
+                     htmlOutput("splitrelevance"))
+               ))
+        )
+      )
+    ),
+    desc_panel
+  )
+  
 )
 
 dashboardPage(header, sidebar, body, skin = "green")

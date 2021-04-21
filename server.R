@@ -166,6 +166,10 @@ shinyServer(function(input, output, session) {
                 updateBox("focs_box", action = "toggle", options =list(collapsed = TRUE))    
             }
             
+        } else {
+            if (input$focs_box$collapsed) {
+                updateBox("focs_box", action = "toggle", options =list(collapsed = FALSE))    
+            }
         }
     })
     
