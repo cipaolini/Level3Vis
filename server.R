@@ -51,7 +51,7 @@ shinyServer(function(input, output, session) {
         
         g <- medoid()$coords %>% 
             mutate(
-                alpha = map2_dbl(cws, membprob, function(cwlist, mp) {
+                alpha = map2_dbl(cws, eps, function(cwlist, mp) {
                     if (is.null(cor_click())) mp else as.numeric(cor_click() %in% cwlist)
                 }),
                 cws = map2_chr(cws, cluster, format_cws, relevantcws_filtered()),
@@ -66,8 +66,10 @@ shinyServer(function(input, output, session) {
             coord_fixed()
         if (!is.null(cor_click())) {
             g <- g + scale_alpha(range = c(0.25, 1))
-        } else if (!input$alpha) {
-            g <- g + scale_alpha_identity()
+        # } else if (!input$alpha) {
+        #     g <- g + scale_alpha_identity()
+        } else {
+            g <- g + scale_alpha(range = c(1, 0))
         }
         ggplotly(g, tooltip="text")
     })
@@ -215,11 +217,26 @@ shinyServer(function(input, output, session) {
             layout(xaxis = list(tickangle = 90))
     })
     
-    # Membership probabilities ----
+    # Membership probabilities  // EPS ----
+    
+    output$eps <- renderPlot({
+        medoid()$coords %>% 
+            filter(cluster != "0") %>% 
+            ggplot(aes(x = sense, y = eps, fill = sense, color = sense)) +
+            geom_violin(alpha = 0.3) +
+            geom_jitter(size = 3, height = 0) +
+            facet_grid(~cluster, scales = "free_x", labeller = labeller(cluster = label_both)) +
+            theme_bw() +
+            theme(axis.text = element_text(size = 18),
+                  axis.title = element_text(size = 15),
+                  strip.text = element_text(size = 20),
+                  legend.position = "none")
+        
+    })
     output$mp <- renderPlot({
         medoid()$coords %>%
             filter(cluster != "0") %>%
-            ggplot(aes(x = membprob, y = cluster, fill = sense, color = sense)) +
+            ggplot(aes(x = eps, y = cluster, fill = sense, color = sense)) +
             geom_density_ridges(
                 aes(point_color = sense, point_fill = sense),
                 alpha = 0.3, point_alpha = 1, jittered_points = TRUE, scale = 0.9) +
