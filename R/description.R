@@ -13,7 +13,7 @@ desc_panel <- tabItem(tabName = "description",
               while for FOCs no transformation was peformed."),
                                    p("The color coding corresponds to HDBSCAN (minimum points = 8) on the transformed
                           distances between the tokens. The transparency in the token-level cloud
-                          corresponds to the membership probability of the token to the cluster."),
+                          corresponds to the eps value of the token, as a proxy for density of that space."),
                                    p("For tokens, the tooltip shows the list of context words captured by the model; those in bold are 'relevant' for the cluster."),
                                    p("Context words are colored by the (HDBSCAN token) cluster they represent the most, in terms of frequency, precision and recall.
     Non representative context words are weaker and in gray."),

@@ -8,7 +8,6 @@ tsv <- function (...)
 focdists_from_csv <- function (input_directory, filename) 
 {
   input_file = file.path(input_directory, filename)
-  # Vroom is not helpful here because it takes much longer to transform into a matrix
   focdists <- suppressWarnings(readr::read_tsv(input_file, 
                                                col_types = cols())) %>% data.frame(row.names = "X1") %>% 
     as.matrix()

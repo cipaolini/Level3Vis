@@ -28,6 +28,47 @@ shinyServer(function(input, output, session) {
     
     medoid <- reactive(dat[[input$lemma]]$medoidCoords[[medoidname()]])
     
+    observeEvent(medoid(), {
+        if (length(unique(medoid()$coords$cluster)) == 1 & input$noise) {
+            ask_confirmation(
+                "allnoise",
+                title = "All the tokens are noise!",
+                text = "Would you like to stop ignoring noise?",
+                btn_labels = c("Show noise", "Keep ignoring")
+                )
+        }
+    })
+    observeEvent(input$allnoise, {
+        updateMaterialSwitch(session, "noise", value = input$allnoise)
+    })
+    
+    observeEvent(input$previous, {
+        nmedoid <- as.integer(input$medoid)
+        if (nmedoid == 1) {
+            lemmas <- dir("wwmx")
+            current_lemma <- which(lemmas == input$lemma)
+            if (current_lemma != 1) {
+                updateSelectInput("lemma", session = session, selected = lemmas[[current_lemma-1]])
+                updateSelectInput("medoid", session = session, selected = 8)
+            }
+        } else {
+            updateSelectInput("medoid", session = session, selected = nmedoid - 1)
+        }
+    })
+    
+    observeEvent(input$nextmodel, {
+        nmedoid <- as.integer(input$medoid)
+        if (nmedoid == 8) {
+            lemmas <- dir("wwmx")
+            current_lemma <- which(lemmas == input$lemma)
+            if (current_lemma != length(lemmas)) {
+                updateSelectInput("lemma", session = session, selected = lemmas[[current_lemma+1]])
+                updateSelectInput("medoid", session = session, selected = 1)
+            }
+        } else {
+            updateSelectInput("medoid", session = session, selected = nmedoid + 1)
+        }
+    })
     # Load distance matrix
     focdists <- reactive(focdists_from_csv(file.path("wwmx", input$lemma), paste0(medoidname(), ".wwmx.dist.csv")))
     
@@ -82,7 +123,8 @@ shinyServer(function(input, output, session) {
             dt <- dt %>% mutate(selected = map_lgl(cws, ~cor_click() %in% .x)) %>% filter(selected) %>% 
                 select(-selected)
         } else {
-            dt <- dt %>% filter(cluster != "noise" | !input$noise)
+            only_noise <- length(unique(dt$cluster)) == 1
+            dt <- dt %>% filter(!(cluster == "noise" & input$noise & !only_noise))
         }
         available_clusters <- sort(as.numeric(unique(dt$cluster)), na.last = TRUE)
         cluster_colors <- paste0(palette_OkabeIto_black[available_clusters], "66")
@@ -221,13 +263,13 @@ shinyServer(function(input, output, session) {
     
     output$eps <- renderPlot({
         medoid()$coords %>% 
-            filter(cluster != "0") %>% 
             ggplot(aes(x = sense, y = eps, fill = sense, color = sense)) +
             geom_violin(alpha = 0.3) +
             geom_jitter(size = 3, height = 0) +
             facet_grid(~cluster, scales = "free_x", labeller = labeller(cluster = label_both)) +
             theme_bw() +
-            theme(axis.text = element_text(size = 18),
+            theme(axis.text.y = element_text(size = 18),
+                  axis.text.x = element_text(size = 16, angle = 45, vjust = 1, hjust = 1),
                   axis.title = element_text(size = 15),
                   strip.text = element_text(size = 20),
                   legend.position = "none")

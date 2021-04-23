@@ -11,6 +11,9 @@ library(shinydashboard)
 library(plotly)
 library(shinyWidgets)
 library(shinydashboardPlus)
+library(shinycssloaders)
+
+options(spinner.type = 6)
 
 # Define UI for application that draws a histogram
 header <- dashboardHeader(
@@ -87,22 +90,30 @@ body <- dashboardBody(
     tabItem(
       tabName = "dashboard",
       fluidRow(
-        shinydashboard::box(h4(htmlOutput("medoid")), width = 12, background = "yellow")
+        shinydashboard::box(
+          h4(htmlOutput("medoid")), width = 10, background = "yellow"),
+        shinydashboard::box(
+          column(12, align = "center",
+                 actionBttn("previous", "", icon=icon("arrow-alt-circle-left"), color = "warning", style="material-flat"),
+                 actionBttn("nextmodel", "", icon=icon("arrow-alt-circle-right"), color = "warning", style="material-flat")
+                 ),
+          width = 2, status = "warning")
       ),
       fluidRow(
         tabBox(selected = "t-SNE",
                width = 12, height = "100%",
                tsne_panel,
-               tabPanel("Heatmap", plotlyOutput("heatmap_or", height = "100%")),
+               tabPanel("Heatmap",
+                        withSpinner(plotlyOutput("heatmap_or", height = "100%"), color = "#00a65a", hide.ui = FALSE)),
                tabPanel("HDBSCAN structure",
                         fluidRow(
                           # box(title = "MP densities", status = "primary",
                           #     plotOutput("mp")),
                           box(title = "Eps values", status = "primary",
-                              plotOutput("eps")),
+                              withSpinner(plotOutput("eps"))),
                           box(title = "Proportion of noise per model",
                               status = "danger",
-                              plotOutput("bars")))),
+                              withSpinner(plotOutput("bars"), color = "#dd4b39")))),
                tabPanel("Messages", fluidRow(
                  box(title = "Split relevance",
                      width = 12,
