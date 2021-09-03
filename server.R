@@ -14,7 +14,9 @@ library(DT)
 library(colorblindr)
 library(shinydashboardPlus)
 
-dat <- readRDS("data.rds")
+dat <- readRDS(here::here("data", "data.rds"))
+wwmx_dir <- here::here("data", "wwmx")
+lemmas <- dir(wwmx_dir)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
     
@@ -45,7 +47,6 @@ shinyServer(function(input, output, session) {
     observeEvent(input$previous, {
         nmedoid <- as.integer(input$medoid)
         if (nmedoid == 1) {
-            lemmas <- dir("wwmx")
             current_lemma <- which(lemmas == input$lemma)
             if (current_lemma != 1) {
                 updateSelectInput("lemma", session = session, selected = lemmas[[current_lemma-1]])
@@ -59,7 +60,6 @@ shinyServer(function(input, output, session) {
     observeEvent(input$nextmodel, {
         nmedoid <- as.integer(input$medoid)
         if (nmedoid == 8) {
-            lemmas <- dir("wwmx")
             current_lemma <- which(lemmas == input$lemma)
             if (current_lemma != length(lemmas)) {
                 updateSelectInput("lemma", session = session, selected = lemmas[[current_lemma+1]])
@@ -70,7 +70,7 @@ shinyServer(function(input, output, session) {
         }
     })
     # Load distance matrix
-    focdists <- reactive(focdists_from_csv(file.path("wwmx", input$lemma), paste0(medoidname(), ".wwmx.dist.csv")))
+    focdists <- reactive(focdists_from_csv(here::here("data", "wwmx", input$lemma), paste0(medoidname(), ".wwmx.dist.csv")))
     
     # Select relevant context words ----
     relevantcws <- reactive({

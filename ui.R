@@ -30,7 +30,7 @@ sidebar <- dashboardSidebar(
     ),
     hr(),
     selectInput("lemma", "Lemma",
-                dir("wwmx"),
+                dir(here::here("data", "wwmx")),
                 selected = "heffen"),
     selectInput("medoid", "N of medoid",
                 seq(8), selected = 1),
