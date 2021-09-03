@@ -5,11 +5,10 @@ tsv <- function (...)
   paste(..., "tsv", sep = ".")
 }
 
-focdists_from_csv <- function (input_directory, filename) 
-{
+focdists_from_csv <- function (input_directory, filename) {
   input_file = file.path(input_directory, filename)
   focdists <- suppressWarnings(readr::read_tsv(input_file, 
-                                               col_types = cols())) %>% data.frame(row.names = "X1") %>% 
+                                               col_types = cols())) %>% data.frame(row.names = "...1") %>% 
     as.matrix()
   dimnames(focdists)[2] <- dimnames(focdists)[1]
   return(focdists)
@@ -23,7 +22,7 @@ format_cws <- function(cws, clusn, relevant_cws) {
 
 info <- function(word, is_relevant, cwinfo, focdists){
   if (is_relevant) {
-    info <- filter(cwinfo, cw == word)
+    info <- dplyr::filter(cwinfo, cw == word)
     nearestNeighbors <- head(sort(focdists[word, setdiff(colnames(focdists), word)]), 5)
     nn <- paste0(names(nearestNeighbors), ": ", round(nearestNeighbors, 2), collapse = "<br>")
     glue::glue("{word}<br>F: {info$TP}, R: {round(info$recall, 2)}, P: {round(info$precision, 2)}, <br>{nn}")
