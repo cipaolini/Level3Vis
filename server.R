@@ -233,15 +233,9 @@ shinyServer(function(input, output, session) {
     })
     
     cor_click <- reactive({
+      
         d <- event_data("plotly_click", source = "cor")
         if (is.null(d)) NULL else d$customdata
-        # if (is.null(d)) {
-        #     updateSwitchInput(session = session, inputId = "alpha", disabled = FALSE)
-        #     NULL
-        # } else {
-        #     updateSwitchInput(session = session, inputId = "alpha", disabled = TRUE)
-        #     d$customdata
-        #     }
     })
     
     # Plot heatmap of distances ----
