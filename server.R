@@ -11,13 +11,13 @@ library(shiny)
 library(tidyverse)
 library(ggridges)
 library(DT)
-library(colorblindr)
+source(here::here("R", "scales.R")) #library(colorblindr)
 library(shinydashboardPlus)
 
 dat <- readRDS(here::here("data", "data.rds"))
 wwmx_dir <- here::here("data", "wwmx")
 lemmas <- dir(wwmx_dir)
-# Define server logic required to draw a histogram
+
 shinyServer(function(input, output, session) {
     
     medoidname <- reactive(names(dat[[input$lemma]]$medoidCoords)[[as.integer(input$medoid)]])
@@ -157,7 +157,7 @@ shinyServer(function(input, output, session) {
         
         # From distances to coordinates
         ncluster <- medoid()$coords %>% pull(cluster) %>% as.character() %>% as.numeric() %>% max
-        tsne <- medoid()$cw_coords %>% 
+        tsne <- medoid()$cws %>% 
             mutate(is_relevant = map_lgl(cw, ~.x %in% relevantcws_filtered()$cw),
                    cluster = map2_chr(cw, is_relevant, function(c, b) {
                        if (b) clustermapping[[c]] else NA_character_
@@ -195,12 +195,12 @@ shinyServer(function(input, output, session) {
     })
     
     observeEvent(medoid(), {
-        if (max(medoid()$cw_coords$x) == 0) {
+        if (max(medoid()$cws$x) == 0) {
             show_alert(
                 title = "No type-level t-SNE available!",
                 text = tags$span(
                     sprintf("There are only %d context words, which is too low for perplexity of 30.",
-                               nrow(medoid()$cw_coords)),
+                               nrow(medoid()$cws)),
                     br(),
                     "But don't panic, the rest of the app will work!"
                     ),
@@ -332,7 +332,7 @@ shinyServer(function(input, output, session) {
         surviving_tokens <- nrow(medoid()$coords)
         total_tokens <- nrow(dat[[input$lemma]]$senses)
         noise_tokens <- nrow(filter(medoid()$coords, cluster == "0"))
-        n_FOC <- nrow(medoid()$cw_coords)
+        n_FOC <- nrow(medoid()$cws)
         
         dropdownMenu(
             headerText = "Some more info",

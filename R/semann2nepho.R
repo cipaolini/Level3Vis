@@ -53,10 +53,10 @@ matrix2heatmap <- function(df, removeNoise, distances) {
 mapClusColor <- function(x) {
   if (x == 0) {
     '#9b9c9fB3'
-  } else if (x >= length(colorblindr::palette_OkabeIto_black)) {
+  } else if (x >= length(palette_OkabeIto_black)) {
     '#9b9c9f'
   } else {
-    colorblindr::palette_OkabeIto_black[[x]]  
+    palette_OkabeIto_black[[x]]  
     }
     
 }
@@ -71,15 +71,18 @@ mapClusColor <- function(x) {
 #   }
 # }
 # 
-# for (lemma in names(dat)) {
+# tokenclouds_path <- file.path('../../qlvl/tokenclouds/data')
+# for (lemma in names(d)) {
 #   print(lemma)
-#   ctxts <- semann2nepho::loadCloud("../../qlvl/tokenclouds/data/", lemma, "variables")
-#   for (medoidname in names(dat[[lemma]]$medoidCoords)) {
+#   ctxts <- read_tsv(file.path(tokenclouds_path, lemma, paste0(lemma, '.variables.tsv')),
+#                     show_col_types = F)
+#   for (medoidname in names(d[[lemma]]$medoidCoords)) {
 #     print(medoidname)
-#     ctxt <- ctxts %>% 
-#       select(`_id`, ctxt = str_replace(medoidname, "(.*).LENGTH.*", "_ctxt.\\1"))
-#     dat[[lemma]]$medoidCoords[[medoidname]]$coords <- dat[[lemma]]$medoidCoords[[medoidname]]$coords %>%
+#     ctxt <- ctxts %>%
+#       select(`_id`, sense = collapsed_sense, ctxt = str_replace(medoidname, "(.*).LENGTH.*", "_ctxt.\\1"))
+#     d[[lemma]]$medoidCoords[[medoidname]]$coords <- d[[lemma]]$medoidCoords[[medoidname]]$coords %>%
 #       left_join(ctxt, by = "_id")
 #   }
 # }
-# saveRDS(dat, "data.rds")
+# saveRDS(d, "data/data.rds")
+
