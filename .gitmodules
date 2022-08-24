@@ -1,0 +1,3 @@
+[submodule "cloudspotting-medoids"]
+	path = cloudspotting-medoids
+	url = git@github.com:montesmariana/cloudspotting-medoids.git

@@ -74,7 +74,7 @@ desc_panel <- tabItem(tabName = "description",
                                    p("The frequency threshold of 2 is fixed (but a slider for it could be added).")
                                ),
                                infoBox("Extra!", "Click on the info icon on the upper right corner to find
-                    extra information on the selected medoid!", icon = icon("exclamation-triangle"),
+                    extra information on the selected medoid!", icon = icon("triangle-exclamation"),
                                        color = "yellow", fill=TRUE, width = 12)
                         )
                       ))

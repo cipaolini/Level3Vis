@@ -12,7 +12,6 @@ library(plotly)
 library(shinyWidgets)
 library(shinydashboardPlus)
 library(shinycssloaders)
-
 options(spinner.type = 6)
 
 # Define UI for application that draws a histogram
@@ -25,21 +24,18 @@ header <- dashboardHeader(
 sidebar <- dashboardSidebar(
     width = 150,
     sidebarMenu(
-        menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
-        menuItem("About", tabName = "description", icon = icon("info"))
+        menuItem("Dashboard", tabName = "dashboard", icon = icon("gauge")),
+        menuItem("About", tabName = "description", icon = icon("circle-info"))
     ),
     hr(),
     selectInput("lemma", "Lemma",
-                dir(here::here("data", "wwmx")),
-                selected = "heffen"),
+                lemmas,
+                selected = starting_lemma),
     selectInput("medoid", "N of medoid",
-                seq(8), selected = 1),
+                seq(n_medoids), selected = 1),
     strong("Noise cues", style ="margin-left:1em;"),
     materialSwitch("noise", label = "Ignore", status="success",
                    right = TRUE, value = TRUE),
-    # strong("Tokens transparency", style ="margin-left:1em;"),
-    # materialSwitch("alpha", label = "Scale",
-    #                right = TRUE, value = TRUE, status = "primary"),
     hr(),
     h3("Define relevance", style="margin-left:1em;"),
     numericInput("minfreq", "Frequency",
@@ -94,8 +90,8 @@ body <- dashboardBody(
           h4(htmlOutput("medoid")), width = 10, background = "yellow"),
         shinydashboard::box(
           column(12, align = "center",
-                 actionBttn("previous", "", icon=icon("arrow-alt-circle-left"), color = "warning", style="material-flat"),
-                 actionBttn("nextmodel", "", icon=icon("arrow-alt-circle-right"), color = "warning", style="material-flat")
+                 actionBttn("previous", "", icon=icon("circle-arrow-left"), color = "warning", style="material-flat"),
+                 actionBttn("nextmodel", "", icon=icon("circle-arrow-right"), color = "warning", style="material-flat")
                  ),
           width = 2, status = "warning")
       ),

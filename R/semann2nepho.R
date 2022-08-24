@@ -7,11 +7,11 @@ tsv <- function (...)
 
 focdists_from_csv <- function (input_directory, filename) {
   input_file = file.path(input_directory, filename)
-  focdists <- suppressWarnings(readr::read_tsv(input_file, 
-                                               col_types = cols())) %>% data.frame(row.names = "...1") %>% 
+  focdists <- suppressMessages(readr::read_tsv(input_file, show_col_types = FALSE)) %>%
+    data.frame(row.names = "...1") %>% 
     as.matrix()
   dimnames(focdists)[2] <- dimnames(focdists)[1]
-  return(focdists)
+  focdists
 }
 
 format_cws <- function(cws, clusn, relevant_cws) {
@@ -21,14 +21,14 @@ format_cws <- function(cws, clusn, relevant_cws) {
 }
 
 info <- function(word, is_relevant, cwinfo, focdists){
-  if (is_relevant) {
-    info <- dplyr::filter(cwinfo, cw == word)
-    nearestNeighbors <- head(sort(focdists[word, setdiff(colnames(focdists), word)]), 5)
-    nn <- paste0(names(nearestNeighbors), ": ", round(nearestNeighbors, 2), collapse = "<br>")
-    glue::glue("{word}<br>F: {info$TP}, R: {round(info$recall, 2)}, P: {round(info$precision, 2)}, <br>{nn}")
-  } else {
-    ""
+  if (!is_relevant) {
+    return("")
   }
+  
+  info <- dplyr::filter(cwinfo, cw == word)
+  nearestNeighbors <- head(sort(focdists[word, setdiff(colnames(focdists), word)]), 5)
+  nn <- paste0(names(nearestNeighbors), ": ", round(nearestNeighbors, 2), collapse = "<br>")
+  glue::glue("{word}<br>F: {info$TP}, R: {round(info$recall, 2)}, P: {round(info$precision, 2)}, <br>{nn}")
 }
 
 matrix2heatmap <- function(df, removeNoise, distances) {
@@ -60,29 +60,4 @@ mapClusColor <- function(x) {
     }
     
 }
-# transformMats <- function (mat, asDist = TRUE) 
-# {
-#   ranked <- log(1 + log(t(apply(mat, 1, rank))))
-#   if (asDist) {
-#     return(as.matrix(stats::dist(ranked, diag = T, upper = T)))
-#   }
-#   else {
-#     return(ranked)
-#   }
-# }
-# 
-# tokenclouds_path <- file.path('../../qlvl/tokenclouds/data')
-# for (lemma in names(d)) {
-#   print(lemma)
-#   ctxts <- read_tsv(file.path(tokenclouds_path, lemma, paste0(lemma, '.variables.tsv')),
-#                     show_col_types = F)
-#   for (medoidname in names(d[[lemma]]$medoidCoords)) {
-#     print(medoidname)
-#     ctxt <- ctxts %>%
-#       select(`_id`, sense = collapsed_sense, ctxt = str_replace(medoidname, "(.*).LENGTH.*", "_ctxt.\\1"))
-#     d[[lemma]]$medoidCoords[[medoidname]]$coords <- d[[lemma]]$medoidCoords[[medoidname]]$coords %>%
-#       left_join(ctxt, by = "_id")
-#   }
-# }
-# saveRDS(d, "data/data.rds")
 
