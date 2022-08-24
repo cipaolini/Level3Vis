@@ -18,30 +18,30 @@ shinyServer(function(input, output, session) {
   
   lemma_data <- reactive(readRDS(file.path(hdbscan_dir, paste0(input$lemma, ".rds"))))
   medoidname <- reactive(names(lemma_data())[[as.integer(input$medoid)]])
-  medoid <- reactive(lemma_data()[[medoidname()]])
+  model <- reactive(lemma_data()[[medoidname()]])
   focdists <- reactive(focdists_from_csv(file.path(wwmx_dir, input$lemma),
                                          paste0(medoidname(), ".wwmx.dist.csv")))
   
-  output$medoid <- renderUI({
+  output$modelname <- renderUI({
     a(medoidname(),
       href= nephovis_link(input$lemma, medoidname()),
       style="color:white;")
     })
   
-  observeEvent(medoid(), {
-    if (length(unique(medoid()$coords$cluster)) == 1 & input$noise) {
+  observeEvent(model(), {
+    if (length(unique(model()$coords$cluster)) == 1 & input$noise) {
       ask_confirmation(
         "allnoise",
         title = "All the tokens are noise!",
         text = "Would you like to stop ignoring noise?",
         btn_labels = c("Show noise", "Keep ignoring")
       )
+      
+      observeEvent(input$allnoise, {
+        updateMaterialSwitch(session, "noise", value = input$allnoise)
+      })
     }
     })
-  
-  observeEvent(input$allnoise, {
-    updateMaterialSwitch(session, "noise", value = input$allnoise)
-  })
   
   observeEvent(input$previous, {
     nmedoid <- as.integer(input$medoid)
@@ -74,7 +74,7 @@ shinyServer(function(input, output, session) {
     pr_filter <- parse(text = glue::glue(
       "recall >= {input$recall} {if (input$operator) '&' else '|'} precision >= {input$precision}"
       ))
-    d <- filter(medoid()$cws, TP > input$minfreq, eval(pr_filter)) %>%
+    d <- filter(model()$cws, TP > input$minfreq, eval(pr_filter)) %>%
       arrange(desc(Fscore)) %>% 
       group_by(cw) %>% mutate(reps = seq(n()))
     })
@@ -87,7 +87,7 @@ shinyServer(function(input, output, session) {
     })
   
   output$cor <- renderPlotly({
-    d <- medoid()$cws
+    d <- model()$cws
     if (input$noise) {
       d <- mutate(d, cluster = if_else(cluster == "0", NA_character_, cluster) %>% 
                     fct_reorder(as.numeric(cluster)))
@@ -119,7 +119,7 @@ shinyServer(function(input, output, session) {
   
   # Plot tokens ----
   output$tokens <- renderPlotly({
-    g <- medoid()$coords %>% 
+    g <- model()$coords %>% 
       mutate(
         alpha = map2_dbl(cws, eps, function(cwlist, mp) {
           if (is.null(cor_click())) mp else as.numeric(cor_click() %in% cwlist)
@@ -145,7 +145,7 @@ shinyServer(function(input, output, session) {
     })
   
   output$contexts <- renderDT({
-    dt <- medoid()$coords
+    dt <- model()$coords
     selection_columns <- c("ctxt", "cluster", "cws")
     if (sense_column %in% colnames(dt)) {
       dt[[sense_column]] = str_remove(dt[[sense_column]], paste0(input$lemma, "_"))
@@ -195,7 +195,7 @@ shinyServer(function(input, output, session) {
     labels <- c(as.character(current_clusters), 'noise', 'NA')
     names(labels) <- c(palette_OkabeIto_black[current_clusters], "#9b9c9f", "#9b9c9f26")
     
-    tsne <- medoid()$cws %>% 
+    tsne <- model()$cws %>% 
       filter(!is.na(x), !is.na(y)) %>% 
       mutate(is_relevant = map_lgl(cw, ~ .x %in% relevantcws_filtered()$cw),
              text = map2_chr(cw, is_relevant, info,
@@ -221,13 +221,13 @@ shinyServer(function(input, output, session) {
     ggplotly(g, tooltip = "text")
     })
   
-  observeEvent(medoid(), {
-    if (max(medoid()$cws$x, na.rm = TRUE) == 0) {
+  observeEvent(model(), {
+    if (max(model()$cws$x, na.rm = TRUE) == 0) {
       show_alert(
         title = "No type-level t-SNE available!",
         text = tags$span(
           sprintf("There are only %d context words, which is too low for perplexity of 30.",
-                  nrow(medoid()$cws)),
+                  nrow(model()$cws)),
           br(),
           "But don't panic, the rest of the app will work!"
           ),
@@ -261,12 +261,12 @@ shinyServer(function(input, output, session) {
   # Membership probabilities  // EPS ----
   
   output$eps <- renderPlot({
-    g <- if (sense_column %in% colnames(medoid()$coords)) {
-      medoid()$coords %>% 
+    g <- if (sense_column %in% colnames(model()$coords)) {
+      model()$coords %>% 
         ggplot(aes_string(x = sense_column, y = "eps",
                        fill = sense_column, color = sense_column))
       } else {
-        medoid()$coords %>% ggplot(aes(x = cluster, y = eps))
+        model()$coords %>% ggplot(aes(x = cluster, y = eps))
       }
     
     g +
@@ -279,23 +279,6 @@ shinyServer(function(input, output, session) {
             axis.title = element_text(size = 15),
             strip.text = element_text(size = 20),
             legend.position = "none")
-    })
-  
-  output$mp <- renderPlot({
-    dt <- medoid()$coords %>% filter(cluster != "0")
-    g <- if (sense_column %in% colnames(dt)) {
-      ggplot(aes_string(x = "eps", y = "cluster",
-                     fill = sense_column, color = sense_column,
-                     point_color = sense_column, point_fill = sense_column))
-      } else {
-        ggplot(aes(x = eps, y = cluster))
-      }
-    
-    g + geom_density_ridges(alpha = 0.3, point_alpha = 1,
-                            jittered_points = TRUE, scale = 0.9) +
-      theme_ridges() +
-      labs(y = "Cluster", x = "Membership probability") +
-      xlim(c(0, 1))
     })
   
   output$bars <- renderPlot({
@@ -339,10 +322,10 @@ shinyServer(function(input, output, session) {
   
   # Extra info
   output$tokendata <- renderMenu({
-    surviving_tokens <- nrow(medoid()$coords)
+    surviving_tokens <- nrow(model()$coords)
     total_tokens <- max(map_dbl(lemma_data(), ~ nrow(.x$coords)))
-    noise_tokens <- nrow(filter(medoid()$coords, cluster == "0"))
-    n_FOC <- nrow(medoid()$cws)
+    noise_tokens <- nrow(filter(model()$coords, cluster == "0"))
+    n_FOC <- nrow(model()$cws)
     
     dropdownMenu(
       headerText = "Some more info",

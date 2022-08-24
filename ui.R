@@ -87,7 +87,7 @@ body <- dashboardBody(
       tabName = "dashboard",
       fluidRow(
         shinydashboard::box(
-          h4(htmlOutput("medoid")), width = 10, background = "yellow"),
+          h4(htmlOutput("modelname")), width = 10, background = "yellow"),
         shinydashboard::box(
           column(12, align = "center",
                  actionBttn("previous", "", icon=icon("circle-arrow-left"), color = "warning", style="material-flat"),
@@ -103,8 +103,6 @@ body <- dashboardBody(
                         withSpinner(plotlyOutput("heatmap_or", height = "100%"), color = "#00a65a", hide.ui = FALSE)),
                tabPanel("HDBSCAN structure",
                         fluidRow(
-                          # box(title = "MP densities", status = "primary",
-                          #     plotOutput("mp")),
                           box(title = "Eps values", status = "primary",
                               withSpinner(plotOutput("eps"))),
                           box(title = "Proportion of noise per model",
