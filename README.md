@@ -1,5 +1,8 @@
 # Level3
 
+[![DOI](https://zenodo.org/badge/358172913.svg)](https://zenodo.org/badge/latestdoi/358172913)
+
+
 Shiny App to explore a scatterplot of tokens connected to a scatterplot of their context words.
 This includes information on HDBSCAN clusters of the tokens and the representativity of the context words
 in terms of these clusters.
