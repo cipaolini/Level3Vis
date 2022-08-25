@@ -1,0 +1,14 @@
+name: Level3
+title: Level3
+username:
+account: marianamontes
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3949422
+bundleId: 6234659
+url: https://marianamontes.shinyapps.io/Level3/
+when: 1661370856.22688
+lastSyncTime: 1661370856.22689
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .rscignore
