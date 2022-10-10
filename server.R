@@ -119,11 +119,17 @@ shinyServer(function(input, output, session) {
   
   # Plot tokens ----
   output$tokens <- renderPlotly({
-    g <- model()$coords %>% 
-      mutate(
+    m_alpha <- if ("eps" %in% colnames(model()$coords)) {
+      model()$coords %>% mutate(
         alpha = map2_dbl(cws, eps, function(cwlist, mp) {
           if (is.null(cor_click())) mp else as.numeric(cor_click() %in% cwlist)
-          }),
+        })
+      )
+    } else {
+      model()$coords %>% mutate(alpha = 0.7)
+    }
+    g <- m_alpha %>% 
+      mutate(
         cws = map2_chr(cws, cluster, format_cws, relevantcws_filtered()),
         cluster = if_else(cluster == "0", NA_character_, as.character(cluster)) %>% 
           fct_reorder(as.numeric(cluster))
@@ -261,26 +267,27 @@ shinyServer(function(input, output, session) {
   # Membership probabilities  // EPS ----
   
   output$eps <- renderPlot({
-    g <- if (sense_column %in% colnames(model()$coords)) {
-      model()$coords %>% 
-        ggplot(aes_string(x = sense_column, y = "eps",
-                       fill = sense_column, color = sense_column))
+    if ("eps" %in% colnames(model()$coords)) {
+      g <- if (sense_column %in% colnames(model()$coords)) {
+        model()$coords %>% 
+          ggplot(aes_string(x = sense_column, y = "eps",
+                            fill = sense_column, color = sense_column))
       } else {
         model()$coords %>% ggplot(aes(x = cluster, y = eps))
       }
-    
-    g +
-      geom_violin(alpha = 0.3) +
-      geom_jitter(size = 3, height = 0) +
-      facet_grid(~cluster, scales = "free_x", labeller = labeller(cluster = label_both)) +
-      theme_bw() +
-      theme(axis.text.y = element_text(size = 18),
-            axis.text.x = element_text(size = 16, angle = 45, vjust = 1, hjust = 1),
-            axis.title = element_text(size = 15),
-            strip.text = element_text(size = 20),
-            legend.position = "none")
-    })
-  
+      
+      g +
+        geom_violin(alpha = 0.3) +
+        geom_jitter(size = 3, height = 0) +
+        facet_grid(~cluster, scales = "free_x", labeller = labeller(cluster = label_both)) +
+        theme_bw() +
+        theme(axis.text.y = element_text(size = 18),
+              axis.text.x = element_text(size = 16, angle = 45, vjust = 1, hjust = 1),
+              axis.title = element_text(size = 15),
+              strip.text = element_text(size = 20),
+              legend.position = "none")
+    }
+  })
   output$bars <- renderPlot({
     imap_dfr(lemma_data(), function(medoidmodel, medoidname) {
       mutate(medoidmodel$coords, isnoise = cluster == "0") %>% 
