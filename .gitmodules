@@ -1,3 +1,6 @@
 [submodule "cloudspotting-medoids"]
 	path = cloudspotting-medoids
 	url = git@github.com:montesmariana/cloudspotting-medoids.git
+[submodule "DativeVis"]
+	path = DativeVis
+	url = git@github.com:cipaolini/DativeVis.git
